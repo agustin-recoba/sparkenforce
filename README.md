@@ -1,103 +1,134 @@
 # :rocket: sparkenforce
 
-Type annotation system that allows you to specify and validate the schema of PySpark DataFrames using Python type hints for both function arguments and return values.
+**sparkenforce** is a type annotation system that lets you specify and validate PySpark DataFrame schemas using Python type hints. It validates both function arguments and return values, catching schema mismatches before they cause runtime errors.
 
-## Setup Dev Environment
+## Why sparkenforce?
 
-Installation is using [UV](https://docs.astral.sh/uv/) to manage everything.
+Working with PySpark DataFrames can be error-prone when schemas don't match expectations. sparkenforce helps by:
 
-**Step 1**: Create a virtual environment
+- **Preventing runtime errors**: Catch schema mismatches early with type validation
+- **Improving code clarity**: Function signatures show exactly what DataFrame structure is expected
+- **Enforcing contracts**: Ensure functions return DataFrames with the promised schema
+- **Better debugging**: Clear error messages when validations fail
 
+## Installation
+
+Install sparkenforce using pip:
+
+```bash
+pip install sparkenforce
 ```
+
+Or if you're using uv:
+
+```bash
+uv add sparkenforce
+```
+
+## Quick Start
+
+### Validating Input DataFrames
+
+```python
+import sparkenforce
+from pyspark.sql import functions as F
+
+@sparkenforce.validate
+def transform_data(df: sparkenforce.Dataset['firstname':str, ...]) -> sparkenforce.Dataset['name':str, 'length':int]:
+    """Transform DataFrame with validated input and output schemas."""
+    return df.select(
+        df.firstname.alias('name'),
+        F.length(df.firstname).alias('length')
+    )
+
+# If input DataFrame doesn't have 'firstname' column, validation fails
+# If return DataFrame doesn't match expected schema, validation fails
+```
+
+### Flexible Schemas with Ellipsis
+
+Use `...` to allow additional columns beyond the specified ones:
+
+```python
+@sparkenforce.validate
+def process_names(df: sparkenforce.Dataset['firstname':str, 'lastname':str, ...]):
+    """Requires firstname and lastname, but allows other columns too."""
+    return df.filter(df.firstname != "")
+```
+
+### Return Value Validation
+
+sparkenforce validates that your function returns exactly what you promise:
+
+```python
+@sparkenforce.validate
+def get_summary(df: sparkenforce.Dataset['firstname':str, ...]) -> sparkenforce.Dataset['firstname':str, 'summary':str, ...]:
+    return df.select(
+        'firstname',
+        F.lit('processed').alias('summary'),
+        'lastname'  # Additional columns allowed with ...
+    )
+```
+
+## Error Handling
+
+When validation fails, sparkenforce provides clear error messages:
+
+```python
+# This will raise DatasetValidationError with detailed message:
+# "return value columns mismatch. Expected exactly {'name', 'length'}, 
+#  got {'lastname', 'firstname'}. missing columns: {'name', 'length'}, 
+#  unexpected columns: {'lastname', 'firstname'}"
+
+@sparkenforce.validate  
+def bad_function(df: sparkenforce.Dataset['firstname':str, ...]) -> sparkenforce.Dataset['name':str, 'length':int]:
+    return df.select('firstname', 'lastname')  # Wrong columns!
+```
+
+
+## Development Setup
+
+**Step 1**: Create virtual environment
+```bash
 uv venv
 ```
 
-**Step 2**: Activate your new environment
-
-```
-# on windows
-.venv\Scripts\activate
-
-# on mac / linux
+**Step 2**: Activate environment
+```bash
+# Linux/Mac
 source .venv/bin/activate
+
+# Windows  
+.venv\Scripts\activate
 ```
 
-**Step 3**: Install all the cool dependencies
-
-```
+**Step 3**: Install dependencies
+```bash
 uv sync
 ```
 
-## Github Repo Setup
+## CLI Commands
 
-To add your new project to its Github repository, firstly make sure you have created a project named **sparkenforce** on Github.
-Follow these steps to push your new project.
-
-```
-git remote add origin git@github.com:agustin-recoba/sparkenforce.git
-git branch -M main
-git push -u origin main
-```
-
-## Built-in CLI Commands
-
-We've included a bunch of useful CLI commands for common project tasks using [taskipy](https://github.com/taskipy/taskipy).
-
-```
-# run src/sparkenforce/sparkenforce.py
-task run
-
-# run all tests
+```bash
+# Run tests
 task tests
 
-
-
-# run test coverage and generate report
-task coverage
-
-# typechecking with Ty or Mypy
+# Type checking
 task type
 
-# ruff linting
+# Linting
 task lint
 
-# format with ruff
+# Format code
 task format
+
+# Coverage report
+task coverage
 ```
 
-## Docker Setup
+## Inspiration
 
-A Dockerfile optimized to reduce the image size has been included. To get it up and running follow these steps.
-
-**Step 1**: Build your Docker image.
-
-```
-docker build --progress=plain -t "sparkenforce:Dockerfile" .
-```
-
-**Step 2**: Run your new image.
-
-```
-docker run --rm sparkenforce:Dockerfile
-```
-
-## PyPI Deployment
-
-1. Register your project and create an API Token on [PyPI](https://pypi.org/).
-2. Add the API Token to your projects secrets with the name `PYPI_TOKEN`
-3. Create a new release on Github.
-4. Create a new tag in the form `*.*.*`.
-
-## Dependabot Setup
-
-1. Go to the "Settings -> Advanced Security" tab in your repository.
-2. Under the "Dependabot" section enable the options you want to monitor, we recommend the "Dependabot security updates" at the minimum.
-
-Dependabot is configured to do _weekly_ scans of your dependencies, and pull requests will be prefixed with "DBOT". These settings can be adjusted in the `./.github/dependabot.yml` file.
-
-## References
-
-- [Cookiecutter Python Project](https://github.com/wyattferguson/pattern) - A modern cookiecutter template for your next Python project.
+This project builds on [dataenforce](https://github.com/CedricFR/dataenforce), extending it with additional validation capabilities for PySpark DataFrame workflows.
 
 ## License
 
