@@ -34,6 +34,7 @@ from pyspark.sql import DataFrame
 from pyspark.sql import types as spark_types
 import decimal, datetime
 
+__all__ = ["validate", "Dataset", "DatasetValidationError"]
 
 class DatasetValidationError(TypeError):
     """Raised when DataFrame validation fails."""
@@ -68,7 +69,7 @@ def validate(func: Any) -> Any:
 
         # Validate input arguments
         for argument_name, value in bound.arguments.items():
-            if argument_name in hints and isinstance(hints[argument_name], DatasetMeta):
+            if argument_name in hints and isinstance(hints[argument_name], _DatasetMeta):
                 hint = hints[argument_name]
                 _validate_dataframe(value, hint, argument_name)
 
@@ -77,7 +78,7 @@ def validate(func: Any) -> Any:
 
         # Validate return value if annotated with Dataset type
         return_annotation = hints.get("return")
-        if return_annotation is not None and isinstance(return_annotation, DatasetMeta):
+        if return_annotation is not None and isinstance(return_annotation, _DatasetMeta):
             _validate_dataframe(result, return_annotation, "return value")
 
         return result
@@ -85,7 +86,7 @@ def validate(func: Any) -> Any:
     return wrapper
 
 
-def _validate_dataframe(value: Any, hint: "DatasetMeta", argument_name: str) -> None:
+def _validate_dataframe(value: Any, hint: "_DatasetMeta", argument_name: str) -> None:
     """
     Validate a single DataFrame against a Dataset hint.
 
@@ -282,7 +283,7 @@ def _get_columns_dtypes(parameters: Any) -> Tuple[Set[str], Dict[str, Any]]:
             sub_columns, sub_dtypes = _get_columns_dtypes(element)
             columns.update(sub_columns)
             dtypes.update(sub_dtypes)
-    elif isinstance(parameters, DatasetMeta):
+    elif isinstance(parameters, _DatasetMeta):
         columns.update(parameters.columns)
         dtypes.update(parameters.dtypes)
     else:
@@ -294,14 +295,14 @@ def _get_columns_dtypes(parameters: Any) -> Tuple[Set[str], Dict[str, Any]]:
     return columns, dtypes
 
 
-class DatasetMeta(type):
+class _DatasetMeta(type):
     """
     Metaclass for Dataset type annotations.
 
     This metaclass handles the creation of Dataset types with column and type specifications.
     """
 
-    def __getitem__(cls, parameters: Any) -> "DatasetMeta":
+    def __getitem__(cls, parameters: Any) -> "_DatasetMeta":
         """
         Create a Dataset type with specified columns and types.
 
@@ -330,7 +331,7 @@ class DatasetMeta(type):
         columns, dtypes = _get_columns_dtypes(parameters)
 
         # Create new metaclass instance
-        meta = DatasetMeta(
+        meta = _DatasetMeta(
             cls.__name__,
             cls.__bases__ if hasattr(cls, "__bases__") else (),
             {},
@@ -355,7 +356,7 @@ class DatasetMeta(type):
             return "Dataset"
 
 
-class Dataset(DataFrame, metaclass=DatasetMeta):
+class Dataset(DataFrame, metaclass=_DatasetMeta):
     """
     Type annotation for PySpark DataFrames with schema validation.
 
@@ -386,3 +387,42 @@ class Dataset(DataFrame, metaclass=DatasetMeta):
             "Use spark.createDataFrame() to create DataFrames, "
             "and use Dataset[...] for type annotations only."
         )
+
+
+def infer_dataset_type(df: DataFrame) -> str:
+    """
+    Infer a Dataset[...] annotation string from a PySpark DataFrame's schema.
+
+    Args:
+        df: The PySpark DataFrame to inspect.
+
+    Returns:
+        A string representing the Dataset annotation, e.g.:
+        'Dataset["id": int, "name": str]'
+    """
+    spark_to_py = {
+        spark_types.StringType: str,
+        spark_types.BooleanType: bool,
+        spark_types.ByteType: int,
+        spark_types.ShortType: int,
+        spark_types.IntegerType: int,
+        spark_types.LongType: int,
+        spark_types.FloatType: float,
+        spark_types.DoubleType: float,
+        spark_types.DecimalType: decimal.Decimal,
+        spark_types.DateType: datetime.date,
+        spark_types.TimestampType: datetime.datetime,
+        spark_types.BinaryType: bytearray,
+        spark_types.NullType: type(None),
+    }
+    fields = []
+    for field in df.schema.fields:
+        py_type = None
+        for spark_type, candidate_py in spark_to_py.items():
+            if isinstance(field.dataType, spark_type):
+                py_type = candidate_py
+                break
+        if py_type is None:
+            py_type = type(field.dataType)  # fallback to Spark type class
+        fields.append(f'"{field.name}": {py_type.__name__ if hasattr(py_type, "__name__") else str(py_type)}')
+    return f'Dataset[{", ".join(fields)}]'
