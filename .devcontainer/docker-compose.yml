@@ -1,4 +1,8 @@
-version: '3'
+x-args: &default-args
+  UV_VER: "0.5.24"
+  DEBIAN_VER: "bookworm"
+  WORKSPACE_NAME_: workspace
+  PROJECT_NAME_: ${PROJECT_NAME}
 
 services:
   app:
@@ -6,14 +10,23 @@ services:
       context: ..
       dockerfile: .devcontainer/Dockerfile
       args:
-        PYTHON_VARIANT: "3.10"
-        JAVA_VARIANT: 11-bullseye
+        <<: *default-args
+    
     volumes:
-      - ..:/workspace:cached
-    command: sleep infinity
+      # Mount the current directory to workspace so code changes don't require an image rebuild. .venv is excluded in the .dockerignore file.
+      - type: bind
+        source: ..
+        target: /workspace
+
+    working_dir: /workspace
+
+    command: ["sleep", "infinity"]
+
+    depends_on:
+    - pyspark
 
   pyspark:
-    image: jupyter/pyspark-notebook:spark-3.1.2
+    image: jupyter/pyspark-notebook:latest
     environment: 
       - JUPYTER_ENABLE_LAB=yes
     ports: 

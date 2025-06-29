@@ -1,25 +1,59 @@
 {
-	"name": "Python 3.10 & Apache Spark",
-	"dockerComposeFile": "docker-compose.yml",
-	"service": "app",
-	"workspaceFolder": "/workspace",
-
-	"customizations": {
-        "vscode" : {
+    "name": "Python 3.10 & Apache Spark",
+    "dockerComposeFile": "docker-compose.yml",
+    "service": "app",
+    "workspaceFolder": "/workspace",
+    "postCreateCommand": {
+        "uv-sync": "uv sync && . .venv/bin/activate"
+    },
+    "postStartCommand": {
+        "venv-activate": ". .venv/bin/activate"
+    },
+    "postAttachCommand": {
+        "venv-activate": ". .venv/bin/activate"
+    },
+    "customizations": {
+        "vscode": {
             "settings": {
                 "terminal.integrated.profiles.linux": {
                     "bash": {
-                        "path": "/bin/bash"
+                        "path": "/bin/bash",
+                        "icon": "terminal-bash"
                     }
                 },
                 "terminal.integrated.defaultProfile.linux": "bash",
+
+                // python
+                "python.defaultInterpreterPath": ".venv/bin/python3",
                 "python.linting.enabled": true,
-                "python.linting.pylintEnabled": true
+                "python.linting.pylintEnabled": true,
+                "python.testing.pytestArgs": ["tests"],
+                "python.testing.unittestEnabled": false,
+                "python.testing.pytestEnabled": true,
+                
+                // jupyter
+                "jupyter.notebookFileRoot": "${workspaceRoot}",
+
+                // ruff
+                "ruff.configurationPreference": "filesystemFirst",
+                "ruff.configuration": "pyproject.toml",
+
+                // ty
+                "ty.experimental.completions.enable": true,
+                "ty.trace.server": "messages",
             },
             "extensions": [
                 "ms-python.python",
-		        "ms-toolsai.jupyter"
+                "ms-python.vscode-pylance",
+                "ms-python.black-formatter",
+                "astral-sh.ty",
+                "charliermarsh.ruff",
+                "visualstudioexptteam.vscodeintellicode",
+                "ms-toolsai.jupyter",
+                "njpwerner.autodocstring",
+                "kevinrose.vsc-python-indent"
             ]
         }
-    }
+    },
+    "remoteUser": "vscode"
 }

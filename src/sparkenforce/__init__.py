@@ -1,17 +1,3 @@
-# Copyright 2018 Cedric Canovas
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 """
 sparkenforce: Type validation for PySpark DataFrames.
 
@@ -25,24 +11,44 @@ Example:
         # Function will validate that df has the required columns and types
         # Return value will also be validated against the specified schema
         return spark.createDataFrame([("processed",)], ["result"])
+
+Apache Software License 2.0
+
+Copyright (c) 2025, Agustín Recoba
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
 """
 
+import datetime
+import decimal
 import inspect
 from functools import wraps
-from typing import Any, Dict, Set, Tuple, Union, Optional, get_type_hints, Type
+from typing import Any, Dict, Set, Tuple, Type, TypeVar, get_type_hints
+
 from pyspark.sql import DataFrame
 from pyspark.sql import types as spark_types
-import decimal, datetime
 
-__all__ = ["validate", "Dataset", "DatasetValidationError"]
+__all__ = ["Dataset", "DatasetValidationError", "validate"]
+
 
 class DatasetValidationError(TypeError):
     """Raised when DataFrame validation fails."""
 
-    pass
+
+T = TypeVar("T", bound=callable)
 
 
-def validate(func: Any) -> Any:
+def validate(func: T) -> T:
     """
     Decorator that validates function arguments and return values annotated with Dataset types.
 
@@ -64,12 +70,15 @@ def validate(func: Any) -> Any:
     hints = get_type_hints(func)
 
     @wraps(func)
-    def wrapper(*args: Any, **kwargs: Any) -> Any:
+    def wrapper(*args, **kwargs):
         bound = signature.bind(*args, **kwargs)
 
         # Validate input arguments
         for argument_name, value in bound.arguments.items():
-            if argument_name in hints and isinstance(hints[argument_name], _DatasetMeta):
+            if argument_name in hints and isinstance(
+                hints[argument_name],
+                _DatasetMeta,
+            ):
                 hint = hints[argument_name]
                 _validate_dataframe(value, hint, argument_name)
 
@@ -78,7 +87,10 @@ def validate(func: Any) -> Any:
 
         # Validate return value if annotated with Dataset type
         return_annotation = hints.get("return")
-        if return_annotation is not None and isinstance(return_annotation, _DatasetMeta):
+        if return_annotation is not None and isinstance(
+            return_annotation,
+            _DatasetMeta,
+        ):
             _validate_dataframe(result, return_annotation, "return value")
 
         return result
@@ -86,7 +98,9 @@ def validate(func: Any) -> Any:
     return wrapper
 
 
-def _validate_dataframe(value: Any, hint: "_DatasetMeta", argument_name: str) -> None:
+def _validate_dataframe(
+    value: object, hint: "_DatasetMeta", argument_name: str
+) -> None:
     """
     Validate a single DataFrame against a Dataset hint.
 
@@ -131,7 +145,9 @@ def _validate_dataframe(value: Any, hint: "_DatasetMeta", argument_name: str) ->
 
 
 def _validate_dtypes(
-    df: DataFrame, expected_dtypes: Dict[str, Any], argument_name: str
+    df: DataFrame,
+    expected_dtypes: Dict[str, Any],
+    argument_name: str,
 ) -> None:
     """
     Validate DataFrame column types.
@@ -151,7 +167,7 @@ def _validate_dtypes(
             continue  # Column presence already validated
 
         actual_type_str = actual_dtypes[col_name]
-        actual_spark_type = spark_types._parse_datatype_string(actual_type_str)
+        actual_spark_type = spark_types.DataType.fromDDL(actual_type_str)
 
         # Convert expected type to Spark type
         expected_spark_type = _convert_to_spark_type(expected_type)
@@ -239,11 +255,10 @@ def _types_compatible(
     # Check if actual and expected types are in the same compatibility group
     compatibility_groups = [integer_types, float_types, string_types, timestamp_types]
 
-    for group in compatibility_groups:
-        if isinstance(actual, group) and expected in group:
-            return True
-
-    return False
+    return any(
+        isinstance(actual, group) and expected in group
+        for group in compatibility_groups
+    )
 
 
 def _get_columns_dtypes(parameters: Any) -> Tuple[Set[str], Dict[str, Any]]:
@@ -302,7 +317,11 @@ class _DatasetMeta(type):
     This metaclass handles the creation of Dataset types with column and type specifications.
     """
 
-    def __getitem__(cls, parameters: Any) -> "_DatasetMeta":
+    only_specified: bool
+    columns: Set[str]
+    dtypes: Dict[str, Any]
+
+    def __getitem__(cls, parameters: object) -> "_DatasetMeta":
         """
         Create a Dataset type with specified columns and types.
 
@@ -350,10 +369,11 @@ class _DatasetMeta(type):
                 for col, dt in cls.dtypes.items()
             ]
             return f"Dataset[{', '.join(type_strs)}]"
-        elif hasattr(cls, "columns") and cls.columns:
+
+        if hasattr(cls, "columns") and cls.columns:
             return f"Dataset[{', '.join(sorted(cls.columns))}]"
-        else:
-            return "Dataset"
+
+        return "Dataset"
 
 
 class Dataset(DataFrame, metaclass=_DatasetMeta):
@@ -380,7 +400,7 @@ class Dataset(DataFrame, metaclass=_DatasetMeta):
 
     __slots__ = ()
 
-    def __new__(cls, *args: Any, **kwargs: Any) -> None:
+    def __new__(cls, *args, **kwargs):
         """Prevent direct instantiation."""
         raise TypeError(
             "Dataset cannot be instantiated directly. "
@@ -424,5 +444,7 @@ def infer_dataset_type(df: DataFrame) -> str:
                 break
         if py_type is None:
             py_type = type(field.dataType)  # fallback to Spark type class
-        fields.append(f'"{field.name}": {py_type.__name__ if hasattr(py_type, "__name__") else str(py_type)}')
+        fields.append(
+            f'"{field.name}": {py_type.__name__ if hasattr(py_type, "__name__") else str(py_type)}',
+        )
     return f'Dataset[{", ".join(fields)}]'
