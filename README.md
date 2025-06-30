@@ -31,14 +31,14 @@ uv add sparkenforce
 
 ```python
 import sparkenforce
-from pyspark.sql import functions as F
+from pyspark.sql import functions as fn
 
 @sparkenforce.validate
 def transform_data(df: sparkenforce.Dataset['firstname':str, ...]) -> sparkenforce.Dataset['name':str, 'length':int]:
     """Transform DataFrame with validated input and output schemas."""
     return df.select(
         df.firstname.alias('name'),
-        F.length(df.firstname).alias('length')
+        fn.length(df.firstname).alias('length')
     )
 
 # If input DataFrame doesn't have 'firstname' column, validation fails
@@ -65,7 +65,7 @@ sparkenforce validates that your function returns exactly what you promise:
 def get_summary(df: sparkenforce.Dataset['firstname':str, ...]) -> sparkenforce.Dataset['firstname':str, 'summary':str, ...]:
     return df.select(
         'firstname',
-        F.lit('processed').alias('summary'),
+        fn.lit('processed').alias('summary'),
         'lastname'  # Additional columns allowed with ...
     )
 ```
@@ -76,11 +76,11 @@ When validation fails, sparkenforce provides clear error messages:
 
 ```python
 # This will raise DatasetValidationError with detailed message:
-# "return value columns mismatch. Expected exactly {'name', 'length'}, 
-#  got {'lastname', 'firstname'}. missing columns: {'name', 'length'}, 
+# "return value columns mismatch. Expected exactly {'name', 'length'},
+#  got {'lastname', 'firstname'}. missing columns: {'name', 'length'},
 #  unexpected columns: {'lastname', 'firstname'}"
 
-@sparkenforce.validate  
+@sparkenforce.validate
 def bad_function(df: sparkenforce.Dataset['firstname':str, ...]) -> sparkenforce.Dataset['name':str, 'length':int]:
     return df.select('firstname', 'lastname')  # Wrong columns!
 ```
@@ -98,7 +98,7 @@ uv venv
 # Linux/Mac
 source .venv/bin/activate
 
-# Windows  
+# Windows
 .venv\Scripts\activate
 ```
 

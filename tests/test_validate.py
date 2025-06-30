@@ -1,17 +1,17 @@
-import pytest
-from sparkenforce import Dataset, validate, DatasetValidationError
 from datetime import datetime
-from typing import TYPE_CHECKING
+from typing import ModuleType
 
-if TYPE_CHECKING:
-    from pyspark.sql import SparkSession
+import pytest
+from pyspark.sql import SparkSession
+from pyspark.sql import functions as fn
+
+from sparkenforce import Dataset, DatasetValidationError, validate
 
 spark: "SparkSession" = None
 
 
-def setup_module(module):
+def setup_module(module: ModuleType):
     global spark
-    from pyspark.sql import SparkSession
 
     spark = SparkSession.builder.master("local[1]").appName("test").getOrCreate()
 
@@ -189,9 +189,7 @@ def test_missing_required_columns():
 
 def test_type_validation_error_messages():
     """Test that type validation errors are informative."""
-    df = spark.createDataFrame(
-        [(1, "not_a_number"), (2, "also_not"), (3, "nope")], ["a", "b"]
-    )
+    df = spark.createDataFrame([(1, "not_a_number"), (2, "also_not"), (3, "nope")], ["a", "b"])
 
     @validate
     def process(data: Dataset["a":int, "b":float]):
@@ -238,41 +236,33 @@ def test_nested_dataset_validation():
 
 def test_unsupported_type_validation():
     """Test that unsupported types raise TypeError instead of silent fallback."""
-
     # Test with unsupported Python types
-    with pytest.raises(
-        TypeError, match="Unsupported type for Dataset column validation"
-    ):
+    with pytest.raises(TypeError, match="Unsupported type for Dataset column validation"):
         Dataset["col":list]
 
-    with pytest.raises(
-        TypeError, match="Unsupported type for Dataset column validation"
-    ):
+    with pytest.raises(TypeError, match="Unsupported type for Dataset column validation"):
         Dataset["col":dict]
 
-    with pytest.raises(
-        TypeError, match="Unsupported type for Dataset column validation"
-    ):
+    with pytest.raises(TypeError, match="Unsupported type for Dataset column validation"):
         Dataset["col":tuple]
 
     # Test with custom class
     class CustomClass:
         pass
 
-    with pytest.raises(
-        TypeError, match="Unsupported type for Dataset column validation"
-    ):
+    with pytest.raises(TypeError, match="Unsupported type for Dataset column validation"):
         Dataset["col":CustomClass]
 
 
 def test_supported_types():
     """Test that all supported types work correctly."""
     from datetime import datetime
+
     from pyspark.sql.types import (
+        BooleanType,
+        DoubleType,
         IntegerType,
         StringType,
-        DoubleType,
-        BooleanType,
         TimestampType,
     )
 
@@ -348,9 +338,7 @@ def test_return_value_validation():
         invalid_return_function(input_df)
 
     # Non-DataFrame return should fail
-    with pytest.raises(
-        DatasetValidationError, match="return value must be a PySpark DataFrame"
-    ):
+    with pytest.raises(DatasetValidationError, match="return value must be a PySpark DataFrame"):
         non_dataframe_return(input_df)
 
 
@@ -381,9 +369,7 @@ def test_return_value_type_validation():
     assert result == correct_return_df
 
     # Incorrect types should fail
-    with pytest.raises(
-        DatasetValidationError, match="return value.*has incorrect type"
-    ):
+    with pytest.raises(DatasetValidationError, match="return value.*has incorrect type"):
         incorrect_types_return(input_df)
 
 
@@ -393,7 +379,8 @@ def test_return_value_ellipsis_validation():
 
     # Return DataFrame with required columns and extra ones
     extended_return_df = spark.createDataFrame(
-        [(42, "success", "extra")], ["count", "status", "additional"]
+        [(42, "success", "extra")],
+        ["count", "status", "additional"],
     )
 
     # Return DataFrame missing required columns
@@ -416,9 +403,7 @@ def test_return_value_ellipsis_validation():
     assert result == extended_return_df
 
     # Should fail with missing required columns
-    with pytest.raises(
-        DatasetValidationError, match="return value.*missing required columns"
-    ):
+    with pytest.raises(DatasetValidationError, match="return value.*missing required columns"):
         ellipsis_return_invalid(input_df)
 
 
@@ -450,7 +435,8 @@ def test_return_value_nested_dataset():
     ExtendedReturn = Dataset[BaseReturn, "timestamp":datetime]
 
     correct_return_df = spark.createDataFrame(
-        [(1, "success", datetime.now())], ["id", "status", "timestamp"]
+        [(1, "success", datetime.now())],
+        ["id", "status", "timestamp"],
     )
 
     @validate
@@ -464,8 +450,6 @@ def test_return_value_nested_dataset():
 
 def test_integer_type_compatibility():
     """Test that different Spark integer types are compatible with int annotation."""
-    from pyspark.sql import functions as F
-
     input_df = spark.createDataFrame([(1, "test")], ["id", "name"])
 
     @validate
@@ -475,7 +459,7 @@ def test_integer_type_compatibility():
         """Function that returns IntegerType for length (not LongType)."""
         return data.select(
             data.name,
-            F.length(data.name).alias("length"),  # F.length returns IntegerType
+            fn.length(data.name).alias("length"),  # F.length returns IntegerType
         )
 
     # This should work - IntegerType should be compatible with int annotation (LongType)

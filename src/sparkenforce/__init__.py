@@ -98,9 +98,7 @@ def validate(func: T) -> T:
     return wrapper
 
 
-def _validate_dataframe(
-    value: object, hint: "_DatasetMeta", argument_name: str
-) -> None:
+def _validate_dataframe(value: object, hint: "_DatasetMeta", argument_name: str) -> None:
     """
     Validate a single DataFrame against a Dataset hint.
 
@@ -114,7 +112,7 @@ def _validate_dataframe(
     """
     if not isinstance(value, DataFrame):
         raise DatasetValidationError(
-            f"{argument_name} must be a PySpark DataFrame, got {type(value)}"
+            f"{argument_name} must be a PySpark DataFrame, got {type(value)}",
         )
 
     columns = set(value.columns)
@@ -130,14 +128,12 @@ def _validate_dataframe(
             msg_parts.append(f"unexpected columns: {extra}")
         raise DatasetValidationError(
             f"{argument_name} columns mismatch. Expected exactly {hint.columns}, "
-            f"got {columns}. {', '.join(msg_parts)}"
+            f"got {columns}. {', '.join(msg_parts)}",
         )
 
     if not hint.only_specified and not hint.columns.issubset(columns):
         missing = hint.columns - columns
-        raise DatasetValidationError(
-            f"{argument_name} is missing required columns: {missing}"
-        )
+        raise DatasetValidationError(f"{argument_name} is missing required columns: {missing}")
 
     # Check data types
     if hint.dtypes:
@@ -146,7 +142,7 @@ def _validate_dataframe(
 
 def _validate_dtypes(
     df: DataFrame,
-    expected_dtypes: Dict[str, Any],
+    expected_dtypes: dict[str, Any],
     argument_name: str,
 ) -> None:
     """
@@ -175,11 +171,11 @@ def _validate_dtypes(
         if not _types_compatible(actual_spark_type, expected_spark_type):
             raise DatasetValidationError(
                 f"{argument_name} column '{col_name}' has incorrect type. "
-                f"Expected {expected_type}, got {type(actual_spark_type).__name__}"
+                f"Expected {expected_type}, got {type(actual_spark_type).__name__}",
             )
 
 
-def _convert_to_spark_type(python_type: Any) -> Type[spark_types.DataType]:
+def _convert_to_spark_type(python_type: Any) -> type[spark_types.DataType]:
     """
     Convert Python type to Spark DataType.
 
@@ -220,13 +216,11 @@ def _convert_to_spark_type(python_type: Any) -> Type[spark_types.DataType]:
     raise TypeError(
         f"Unsupported type for Dataset column validation: {python_type}. "
         f"Supported types are: {', '.join(str(t) for t in supported_types)} "
-        f"or any subclass of pyspark.sql.types.DataType"
+        f"or any subclass of pyspark.sql.types.DataType",
     )
 
 
-def _types_compatible(
-    actual: spark_types.DataType, expected: Type[spark_types.DataType]
-) -> bool:
+def _types_compatible(actual: spark_types.DataType, expected: type[spark_types.DataType]) -> bool:
     """
     Check if actual Spark type is compatible with expected type.
 
@@ -255,13 +249,10 @@ def _types_compatible(
     # Check if actual and expected types are in the same compatibility group
     compatibility_groups = [integer_types, float_types, string_types, timestamp_types]
 
-    return any(
-        isinstance(actual, group) and expected in group
-        for group in compatibility_groups
-    )
+    return any(isinstance(actual, group) and expected in group for group in compatibility_groups)
 
 
-def _get_columns_dtypes(parameters: Any) -> Tuple[Set[str], Dict[str, Any]]:
+def _get_columns_dtypes(parameters: Any) -> tuple[set[str], dict[str, Any]]:
     """
     Extract column names and types from Dataset parameters.
 
@@ -274,8 +265,8 @@ def _get_columns_dtypes(parameters: Any) -> Tuple[Set[str], Dict[str, Any]]:
     Raises:
         TypeError: When parameters are invalid or types are unsupported
     """
-    columns: Set[str] = set()
-    dtypes: Dict[str, Any] = {}
+    columns: set[str] = set()
+    dtypes: dict[str, Any] = {}
 
     if isinstance(parameters, str):
         columns.add(parameters)
@@ -289,9 +280,7 @@ def _get_columns_dtypes(parameters: Any) -> Tuple[Set[str], Dict[str, Any]]:
                 _convert_to_spark_type(parameters.stop)
             except TypeError as e:
                 # Re-raise with more context about where the error occurred
-                raise TypeError(
-                    f"Invalid type for column '{parameters.start}': {str(e)}"
-                ) from e
+                raise TypeError(f"Invalid type for column '{parameters.start}': {e!s}") from e
             dtypes[parameters.start] = parameters.stop
     elif isinstance(parameters, (list, tuple, set)):
         for element in parameters:
@@ -304,7 +293,7 @@ def _get_columns_dtypes(parameters: Any) -> Tuple[Set[str], Dict[str, Any]]:
     else:
         raise TypeError(
             f"Dataset parameters must be strings, slices, lists, or DatasetMeta instances. "
-            f"Got {type(parameters)}"
+            f"Got {type(parameters)}",
         )
 
     return columns, dtypes
@@ -318,8 +307,8 @@ class _DatasetMeta(type):
     """
 
     only_specified: bool
-    columns: Set[str]
-    dtypes: Dict[str, Any]
+    columns: set[str]
+    dtypes: dict[str, Any]
 
     def __getitem__(cls, parameters: object) -> "_DatasetMeta":
         """
@@ -405,7 +394,7 @@ class Dataset(DataFrame, metaclass=_DatasetMeta):
         raise TypeError(
             "Dataset cannot be instantiated directly. "
             "Use spark.createDataFrame() to create DataFrames, "
-            "and use Dataset[...] for type annotations only."
+            "and use Dataset[...] for type annotations only.",
         )
 
 
@@ -447,4 +436,4 @@ def infer_dataset_type(df: DataFrame) -> str:
         fields.append(
             f'"{field.name}": {py_type.__name__ if hasattr(py_type, "__name__") else str(py_type)}',
         )
-    return f'Dataset[{", ".join(fields)}]'
+    return f"Dataset[{', '.join(fields)}]"

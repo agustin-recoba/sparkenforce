@@ -11,7 +11,7 @@ services:
       dockerfile: .devcontainer/Dockerfile
       args:
         <<: *default-args
-    
+
     volumes:
       # Mount the current directory to workspace so code changes don't require an image rebuild. .venv is excluded in the .dockerignore file.
       - type: bind
@@ -27,7 +27,7 @@ services:
 
   pyspark:
     image: jupyter/pyspark-notebook:latest
-    environment: 
+    environment:
       - JUPYTER_ENABLE_LAB=yes
-    ports: 
+    ports:
       - 8889:8888

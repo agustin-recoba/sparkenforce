@@ -1,7 +1,7 @@
 import pytest
-from sparkenforce import Dataset, infer_dataset_type
-
 from pyspark.sql import SparkSession
+
+from sparkenforce import Dataset, infer_dataset_type
 
 spark: "SparkSession" = None
 
@@ -106,7 +106,7 @@ def test_infer_dataset_type_basic():
 
 
 def test_infer_dataset_type_nulltype():
-    from pyspark.sql.types import StructType, StructField, NullType
+    from pyspark.sql.types import NullType, StructField, StructType
 
     schema = StructType([StructField("maybe", NullType(), True)])
     df = spark.createDataFrame([(None,)], schema=schema)

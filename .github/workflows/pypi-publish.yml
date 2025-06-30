@@ -43,7 +43,7 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@v5
         with:
-          version: "0.6.5"
+          version: "0.5.24"
 
       - name: Install Python dependencies
         run: uv sync
@@ -57,4 +57,7 @@ jobs:
         run: uv build
 
       - name: Publish package
-        run: UV_PUBLISH_TOKEN=${{ secrets.PYPI_TOKEN }} uv publish
+        env:
+          PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
+        run: uv publish --token "$PYPI_TOKEN"
+

@@ -23,24 +23,20 @@
                 },
                 "terminal.integrated.defaultProfile.linux": "bash",
 
-                // python
                 "python.defaultInterpreterPath": ".venv/bin/python3",
                 "python.linting.enabled": true,
                 "python.linting.pylintEnabled": true,
                 "python.testing.pytestArgs": ["tests"],
                 "python.testing.unittestEnabled": false,
                 "python.testing.pytestEnabled": true,
-                
-                // jupyter
+
                 "jupyter.notebookFileRoot": "${workspaceRoot}",
 
-                // ruff
                 "ruff.configurationPreference": "filesystemFirst",
                 "ruff.configuration": "pyproject.toml",
 
-                // ty
                 "ty.experimental.completions.enable": true,
-                "ty.trace.server": "messages",
+                "ty.trace.server": "messages"
             },
             "extensions": [
                 "ms-python.python",
