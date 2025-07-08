@@ -175,6 +175,21 @@ def _validate_dtypes(
             )
 
 
+# Custom type mapping registry for user extensions
+_custom_type_mappings: dict[type, type[spark_types.DataType]] = {}
+
+
+def register_type_mapping(python_type: type, spark_type: type[spark_types.DataType]) -> None:
+    """
+    Register a custom mapping from a Python type to a Spark DataType.
+
+    Args:
+        python_type: The Python type to map.
+        spark_type: The corresponding Spark DataType class.
+    """
+    _custom_type_mappings[python_type] = spark_type
+
+
 def _convert_to_spark_type(python_type: Any) -> type[spark_types.DataType]:
     """
     Convert Python type to Spark DataType.
@@ -188,6 +203,10 @@ def _convert_to_spark_type(python_type: Any) -> type[spark_types.DataType]:
     Raises:
         TypeError: When python_type is not a supported type
     """
+    # Check custom user-registered mappings first
+    if python_type in _custom_type_mappings:
+        return _custom_type_mappings[python_type]
+
     if isinstance(python_type, type) and issubclass(python_type, spark_types.DataType):
         return python_type
 
