@@ -1,16 +1,22 @@
+from dataclasses import dataclass
 from datetime import datetime
-from typing import ModuleType
 
 import pytest
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as fn
+from pyspark.sql import types as spark_types
 
-from sparkenforce import Dataset, DatasetValidationError, validate
+from sparkenforce import (
+    Dataset,
+    DatasetValidationError,
+    validate,
+    register_type_mapping,
+)
 
 spark: "SparkSession" = None
 
 
-def setup_module(module: ModuleType):
+def setup_module(module):
     global spark
 
     spark = SparkSession.builder.master("local[1]").appName("test").getOrCreate()
@@ -26,6 +32,7 @@ def test_validate_columns():
         pass
 
     process(df2)
+
     with pytest.raises(DatasetValidationError):
         process(df1)
     with pytest.raises(DatasetValidationError):
@@ -41,6 +48,66 @@ def test_validate_combination():
         pass
 
     process(df1, df2)
+
+
+def test_validate_custom_type():
+    struct_type = spark_types.StructType(
+        [
+            spark_types.StructField("forename", spark_types.StringType(), True),
+            spark_types.StructField("surname", spark_types.StringType(), True),
+        ]
+    )
+
+    df1 = spark.createDataFrame(
+        [
+            ({"forename": "John", "surname": "Doe"},),
+            ({"forename": "Jane", "surname": "Doe"},),
+        ],
+        schema=spark_types.StructType(
+            [
+                spark_types.StructField(
+                    "name",
+                    struct_type,
+                    True,
+                )
+            ]
+        ),
+    )
+    df2 = spark.createDataFrame(
+        [
+            ({"forename": "Jim"},),
+        ],
+        schema=spark_types.StructType(
+            [
+                spark_types.StructField(
+                    "name",
+                    spark_types.StructType(
+                        [
+                            spark_types.StructField("forename", spark_types.StringType(), True),
+                        ]
+                    ),
+                    True,
+                )
+            ]
+        ),
+    )
+
+    @dataclass
+    class NameType:
+        forename: str
+        surname: str
+
+    register_type_mapping(NameType, struct_type)
+
+    @validate
+    def process(data1: Dataset["name":NameType], data2: Dataset["name":struct_type]):
+        pass
+
+    process(df1, df1)
+    with pytest.raises(DatasetValidationError):
+        process(df1, df2)
+    with pytest.raises(DatasetValidationError):
+        process(df2, df1)
 
 
 def test_validate_ellipsis():
@@ -150,7 +217,7 @@ def test_improved_error_messages():
         pass
 
     # Test missing columns error message
-    with pytest.raises(DatasetValidationError, match="missing columns"):
+    with pytest.raises(DatasetValidationError, match="missing required columns"):
         process(df1)
 
     # Test unexpected columns error message
@@ -236,22 +303,27 @@ def test_nested_dataset_validation():
 
 def test_unsupported_type_validation():
     """Test that unsupported types raise TypeError instead of silent fallback."""
+
+    @validate
+    def process_unsupported(data: Dataset["col":list]):
+        pass
+
+    df = spark.createDataFrame([(1,)], ["col"])
+
     # Test with unsupported Python types
-    with pytest.raises(TypeError, match="Unsupported type for Dataset column validation"):
-        Dataset["col":list]
-
-    with pytest.raises(TypeError, match="Unsupported type for Dataset column validation"):
-        Dataset["col":dict]
-
-    with pytest.raises(TypeError, match="Unsupported type for Dataset column validation"):
-        Dataset["col":tuple]
+    with pytest.raises(TypeError, match="Unsupported type for Dataset column 'col'"):
+        process_unsupported(df)
 
     # Test with custom class
     class CustomClass:
         pass
 
-    with pytest.raises(TypeError, match="Unsupported type for Dataset column validation"):
-        Dataset["col":CustomClass]
+    @validate
+    def process_custom(data: Dataset["col":CustomClass]):
+        pass
+
+    with pytest.raises(TypeError, match="Unsupported type for Dataset column 'col'"):
+        process_custom(df)
 
 
 def test_supported_types():
@@ -334,7 +406,9 @@ def test_return_value_validation():
     assert result == valid_return_df
 
     # Invalid schema should fail
-    with pytest.raises(DatasetValidationError, match="return value.*missing columns"):
+    with pytest.raises(
+        DatasetValidationError, match="missing required columns.*unexpected columns"
+    ):
         invalid_return_function(input_df)
 
     # Non-DataFrame return should fail
