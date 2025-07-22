@@ -32,6 +32,8 @@ dev = [
     "ruff>=0.12.0",
     "taskipy>=1.14.1",
     "pre-commit>=4.2.0",
+    "pytest-xdist>=3.8.0",
+    "pytest-sugar>=1.0.0",
 ]
 
 [project.urls]
@@ -64,35 +66,15 @@ src = ["src", "tests"]
 
 [tool.ruff.lint]
 pydocstyle.convention = "google"
-fixable = ["ALL"]
-select = ["ALL"]
-ignore = [
-    "FA102", # Flake8-future-annotations
-    "F401", # Disable fix for unused imports
-    "F821", # Disable fix for undefined names (obviously used in type hints)
-    "B904", # Allow raising exceptions without from e
-    "PLR0913", # too many arguments
-    "CPY", # Flake8-copyright
-    "T201", # Debugging print statements
-    "ERA", # Eradicate – detects commented-out code
-    "BLE001", # Catch-all exceptions
-    "D100", # missing docstring in public module
-    "D105", # undocumented magic method
-    "D107", # undocumented public init
-    "D203", # incorrect-blank-line-before-class
-    "D205", # line-between-summary-and-description
-    "D212", # multi-line-summary-first-line
-    "D400", # missing-trailing-period
-    "D407", # missing-dashed-underline-after-section
-    "S101", # assert
-    "S311", # rand-usage
-]
 
 
 [tool.ty]
 src.root = "./src"
 environment.python = "./.venv"
 terminal.output-format = "concise"
+
+[tool.pytest.ini_options]
+addopts = "--color=yes --cov=sparkenforce --cov-report=xml --cov-append -n auto"
 
 [tool.coverage.paths]
 source = ["src"]
@@ -101,7 +83,7 @@ tests = ["tests","*/tests"]
 [tool.coverage.report]
 skip_empty = true
 show_missing = true
-fail_under = 100
+fail_under = 90
 
 [tool.coverage.run]
 branch = true

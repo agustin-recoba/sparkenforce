@@ -23,6 +23,9 @@
                 },
                 "terminal.integrated.defaultProfile.linux": "bash",
 
+                "editor.formatOnSave": true,
+                "editor.defaultFormatter": "ms-python.black-formatter",
+
                 "python.defaultInterpreterPath": ".venv/bin/python3",
                 "python.linting.enabled": true,
                 "python.linting.pylintEnabled": true,
@@ -47,7 +50,8 @@
                 "visualstudioexptteam.vscodeintellicode",
                 "ms-toolsai.jupyter",
                 "njpwerner.autodocstring",
-                "kevinrose.vsc-python-indent"
+                "kevinrose.vsc-python-indent",
+                "ryanluker.vscode-coverage-gutters"
             ]
         }
     },
