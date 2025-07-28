@@ -406,9 +406,7 @@ def test_return_value_validation():
     assert result == valid_return_df
 
     # Invalid schema should fail
-    with pytest.raises(
-        DatasetValidationError, match="missing required columns.*unexpected columns"
-    ):
+    with pytest.raises(DatasetValidationError, match="missing required columns.*unexpected columns"):
         invalid_return_function(input_df)
 
     # Non-DataFrame return should fail

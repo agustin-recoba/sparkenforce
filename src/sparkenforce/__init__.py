@@ -209,16 +209,13 @@ def _validate_dtypes(
             try:
                 expected_spark_type = expected_type()
             except TypeError as e:
-                raise TypeError(
-                    f"Cannot instantiate Spark type {expected_type.__name__}: {e}"
-                ) from e
+                raise TypeError(f"Cannot instantiate Spark type {expected_type.__name__}: {e}") from e
         elif isinstance(expected_type, spark_types.DataType):
             # If expected type is already a Spark type, use it directly
             expected_spark_type = expected_type
         elif not isinstance(expected_type, type):
             raise TypeError(
-                f"Expected type for Dataset column '{col_name}' must be a type, "
-                f"got {expected_type} instead.",
+                f"Expected type for Dataset column '{col_name}' must be a type, got {expected_type} instead.",
             )
         elif issubclass(expected_type, _supported_python_types) or issubclass(
             expected_type, tuple(_custom_type_mappings.keys())
@@ -304,9 +301,7 @@ def _convert_to_spark_type(python_type: Any) -> spark_types.DataType:
     }
 
     if python_type in type_mapping:
-        print(
-            f"Using built-in type mapping for {python_type.__name__} -> {type_mapping[python_type]}"
-        )
+        print(f"Using built-in type mapping for {python_type.__name__} -> {type_mapping[python_type]}")
         return type_mapping[python_type]()
 
     # Raise error for unsupported types instead of silent fallback
@@ -358,10 +353,7 @@ def _types_compatible(actual: spark_types.DataType, expected: spark_types.DataTy
         date_types,
     ]
 
-    return any(
-        issubclass(type(actual), group) and type(expected) in group
-        for group in compatibility_groups
-    )
+    return any(issubclass(type(actual), group) and type(expected) in group for group in compatibility_groups)
 
 
 def _get_columns_dtypes(parameters: Any) -> tuple[set[str], dict[str, Any], set[str]]:
@@ -414,8 +406,7 @@ def _get_columns_dtypes(parameters: Any) -> tuple[set[str], dict[str, Any], set[
             optional.update(parameters.optional)
     else:
         raise TypeError(
-            f"Dataset parameters must be strings, slices, lists, or DatasetMeta instances. "
-            f"Got {type(parameters)}",
+            f"Dataset parameters must be strings, slices, lists, or DatasetMeta instances. Got {type(parameters)}",
         )
     return columns, dtypes, optional
 
@@ -477,8 +468,7 @@ class _DatasetMeta(type):
         """String representation of Dataset type."""
         if hasattr(cls, "dtypes") and cls.dtypes:
             type_strs = [
-                f"{col}: {dt.__name__ if hasattr(dt, '__name__') else str(dt)}"
-                for col, dt in cls.dtypes.items()
+                f"{col}: {dt.__name__ if hasattr(dt, '__name__') else str(dt)}" for col, dt in cls.dtypes.items()
             ]
             return f"Dataset[{', '.join(type_strs)}]"
 

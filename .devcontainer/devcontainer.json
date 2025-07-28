@@ -24,7 +24,7 @@
                 "terminal.integrated.defaultProfile.linux": "bash",
 
                 "editor.formatOnSave": true,
-                "editor.defaultFormatter": "ms-python.black-formatter",
+                "editor.defaultFormatter": "charliermarsh.ruff",
 
                 "python.defaultInterpreterPath": ".venv/bin/python3",
                 "python.linting.enabled": true,
@@ -44,7 +44,6 @@
             "extensions": [
                 "ms-python.python",
                 "ms-python.vscode-pylance",
-                "ms-python.black-formatter",
                 "astral-sh.ty",
                 "charliermarsh.ruff",
                 "visualstudioexptteam.vscodeintellicode",

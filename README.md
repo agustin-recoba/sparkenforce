@@ -11,31 +11,16 @@ Working with PySpark DataFrames can be error-prone when schemas don't match expe
 - **Enforcing contracts**: Ensure functions return DataFrames with the promised schema
 - **Better debugging**: Clear error messages when validations fail
 
-## Installation
-
-Install sparkenforce using pip:
-
-```bash
-pip install sparkenforce
-```
-
-Or if you're using uv:
-
-```bash
-uv add sparkenforce
-```
-
 ## Quick Start
 
 ### Validating Input DataFrames
 
 ```python
-import sparkenforce
+from sparkenforce import validate, Dataset
 from pyspark.sql import functions as fn
 
-@sparkenforce.validate
-def transform_data(df: sparkenforce.Dataset['firstname':str, ...]) -> sparkenforce.Dataset['name':str, 'length':int]:
-    """Transform DataFrame with validated input and output schemas."""
+@validate
+def add_length(df: Dataset['firstname':str, ...]) -> Dataset['name':str, 'length':int]:
     return df.select(
         df.firstname.alias('name'),
         fn.length(df.firstname).alias('length')
@@ -50,8 +35,8 @@ def transform_data(df: sparkenforce.Dataset['firstname':str, ...]) -> sparkenfor
 Use `...` to allow additional columns beyond the specified ones:
 
 ```python
-@sparkenforce.validate
-def process_names(df: sparkenforce.Dataset['firstname':str, 'lastname':str, ...]):
+@validate
+def filter_names(df: Dataset['firstname':str, 'lastname':str, ...]):
     """Requires firstname and lastname, but allows other columns too."""
     return df.filter(df.firstname != "")
 ```
@@ -61,16 +46,15 @@ def process_names(df: sparkenforce.Dataset['firstname':str, 'lastname':str, ...]
 sparkenforce validates that your function returns exactly what you promise:
 
 ```python
-@sparkenforce.validate
-def get_summary(df: sparkenforce.Dataset['firstname':str, ...]) -> sparkenforce.Dataset['firstname':str, 'summary':str, ...]:
+@validate
+def get_summary(df: Dataset['firstname':str, ...]) -> Dataset['firstname':str, 'summary':str]:
     return df.select(
         'firstname',
         fn.lit('processed').alias('summary'),
-        'lastname'  # Additional columns allowed with ...
     )
 ```
 
-## Error Handling
+### Error Handling
 
 When validation fails, sparkenforce provides clear error messages:
 
@@ -80,10 +64,25 @@ When validation fails, sparkenforce provides clear error messages:
 #  got {'lastname', 'firstname'}. missing columns: {'name', 'length'},
 #  unexpected columns: {'lastname', 'firstname'}"
 
-@sparkenforce.validate
-def bad_function(df: sparkenforce.Dataset['firstname':str, ...]) -> sparkenforce.Dataset['name':str, 'length':int]:
+@validate
+def bad_function(df: Dataset['firstname':str, ...]) -> Dataset['name':str, 'length':int]:
     return df.select('firstname', 'lastname')  # Wrong columns!
 ```
+
+## Installation
+
+Install sparkenforce using pip:
+
+```bash
+pip install sparkenforce
+```
+
+Or if you're using uv:
+
+```bash
+uv add sparkenforce
+```
+
 
 
 ## Development Setup
