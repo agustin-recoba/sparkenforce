@@ -6,7 +6,7 @@
 
 # sparkenforce
 
-**sparkenforce** is a type annotation system that lets you specify and validate PySpark DataFrame schemas using Python type hints. It validates both function arguments and return values, catching schema mismatches before they cause runtime errors.
+**sparkenforce** is a type annotation system that lets you specify and enforce PySpark DataFrame schemas using Python type hints. It validates both function arguments and return values, catching schema mismatches before they cause runtime errors.
 
 ## Why sparkenforce?
 
