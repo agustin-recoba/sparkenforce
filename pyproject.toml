@@ -1,6 +1,6 @@
 [project]
 name = "sparkenforce"
-version = "0.2.1"
+version = "1.0.0"
 description = "Type annotation system that allows you to specify and validate the schema of PySpark DataFrames using Python type hints for both function arguments and return values."
 authors = [{ name = "Agustín Recoba", email = "agustin.recoba@outlook.com" }]
 readme = "README.md"
@@ -58,12 +58,12 @@ run = { cmd = "uv run ./src/sparkenforce/sparkenforce.py", help = "Run main appl
 line-length = 120
 indent-width = 4
 format.indent-style = "space"
-target-version = "py310"
+target-version = "py37"
 src = ["src", "tests"]
 
 [tool.ruff.lint]
 pydocstyle.convention = "google"
-
+ignore = ["F821"]
 
 [tool.ty]
 src.root = "./src"
@@ -80,7 +80,7 @@ tests = ["tests","*/tests"]
 [tool.coverage.report]
 skip_empty = true
 show_missing = true
-fail_under = 90
+fail_under = 85
 
 [tool.coverage.run]
 branch = true

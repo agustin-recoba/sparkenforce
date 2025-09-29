@@ -1,4 +1,3 @@
-import pytest
 from pyspark.sql import types as spark_types
 from sparkenforce import _types_compatible, _convert_to_spark_type
 

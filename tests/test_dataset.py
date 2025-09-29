@@ -1,7 +1,8 @@
+from typing import Type, Union
 import pytest
-from pyspark.sql import SparkSession
+from pyspark.sql import SparkSession, DataFrame
 
-from sparkenforce import Dataset, infer_dataset_type
+from sparkenforce import infer_dataframe_annotation, TypedDataFrame
 
 spark: "SparkSession" = None
 
@@ -12,43 +13,52 @@ def setup_module(module):
     spark = SparkSession.builder.master("local[1]").appName("test").getOrCreate()
 
 
-def test_empty():
-    DEmpty = Dataset[...]
+TEST_THESE_CLASSES = [DataFrame, TypedDataFrame]
+DFType = Union[Type[DataFrame], Type[TypedDataFrame]]
+
+
+@pytest.mark.parametrize("DataFrameClass", TEST_THESE_CLASSES)
+def test_empty(DataFrameClass: DFType):
+    DEmpty = DataFrameClass[...]
 
     assert DEmpty.columns == set()
     assert DEmpty.dtypes == {}
-    assert DEmpty.only_specified == False
+    assert not DEmpty.only_specified
 
 
-def test_columns():
-    DName = Dataset["id", "name"]
-
-    assert DName.columns == {"id", "name"}
-    assert DName.dtypes == {}
-    assert DName.only_specified == True
-
-
-def test_ellipsis():
-    DName = Dataset["id", "name", ...]
+@pytest.mark.parametrize("DataFrameClass", TEST_THESE_CLASSES)
+def test_columns(DataFrameClass: DFType):
+    DName = DataFrameClass["id", "name"]
 
     assert DName.columns == {"id", "name"}
     assert DName.dtypes == {}
-    assert DName.only_specified == False
+    assert DName.only_specified
 
 
-def test_dtypes():
-    DName = Dataset["id":int, "name":str, "location"]
+@pytest.mark.parametrize("DataFrameClass", TEST_THESE_CLASSES)
+def test_ellipsis(DataFrameClass: DFType):
+    DName = DataFrameClass["id", "name", ...]
+
+    assert DName.columns == {"id", "name"}
+    assert DName.dtypes == {}
+    assert not DName.only_specified
+
+
+@pytest.mark.parametrize("DataFrameClass", TEST_THESE_CLASSES)
+def test_dtypes(DataFrameClass: DFType):
+    DName = DataFrameClass["id":int, "name":str, "location"]
 
     assert DName.columns == {"id", "name", "location"}
     assert DName.dtypes == {"id": int, "name": str}
-    assert DName.only_specified == True
+    assert DName.only_specified
 
 
-def test_nested():
-    DName = Dataset["id":int, "name":str]
-    DLocation = Dataset["id":int, "longitude":float, "latitude":float]
+@pytest.mark.parametrize("DataFrameClass", TEST_THESE_CLASSES)
+def test_nested(DataFrameClass: DFType):
+    DName = DataFrameClass["id":int, "name":str]
+    DLocation = DataFrameClass["id":int, "longitude":float, "latitude":float]
 
-    DNameLoc = Dataset[DName, DLocation]
+    DNameLoc = DataFrameClass[DName, DLocation]
 
     assert DNameLoc.columns == {"id", "name", "longitude", "latitude"}
     assert DNameLoc.dtypes == {
@@ -57,9 +67,9 @@ def test_nested():
         "longitude": float,
         "latitude": float,
     }
-    assert DNameLoc.only_specified == True
+    assert DNameLoc.only_specified
 
-    DNameLocEtc = Dataset[DNameLoc, "description":str, ...]
+    DNameLocEtc = DataFrameClass[DNameLoc, "description":str, ...]
     assert DNameLocEtc.columns == {"id", "name", "longitude", "latitude", "description"}
     assert DNameLocEtc.dtypes == {
         "id": int,
@@ -68,15 +78,16 @@ def test_nested():
         "latitude": float,
         "description": str,
     }
-    assert DNameLocEtc.only_specified == False
+    assert not DNameLocEtc.only_specified
 
 
-def test_init():
+@pytest.mark.parametrize("DataFrameClass", TEST_THESE_CLASSES)
+def test_init(DataFrameClass: DFType):
     with pytest.raises(TypeError):
-        Dataset()
+        DataFrameClass()
 
 
-def test_infer_dataset_type_basic():
+def test_infer_dataframe_annotation_basic():
     import datetime
     import decimal
 
@@ -95,7 +106,7 @@ def test_infer_dataset_type_basic():
         ["id", "name", "active", "score", "birthdate", "amount"],
     )
 
-    result = infer_dataset_type(df)
+    result = infer_dataframe_annotation(df)
     # Accept both 'date' and 'datetime.date' for birthdate, and 'Decimal' or 'decimal.Decimal' for amount
     assert '"id": int' in result
     assert '"name": str' in result
@@ -105,16 +116,16 @@ def test_infer_dataset_type_basic():
     assert '"amount": Decimal' in result or '"amount": decimal.Decimal' in result
 
 
-def test_infer_dataset_type_nulltype():
+def test_infer_dataframe_annotation_nulltype():
     from pyspark.sql.types import NullType, StructField, StructType
 
     schema = StructType([StructField("maybe", NullType(), True)])
     df = spark.createDataFrame([(None,)], schema=schema)
-    result = infer_dataset_type(df)
+    result = infer_dataframe_annotation(df)
     assert '"maybe": NoneType' in result or '"maybe": type' in result
 
 
-def test_infer_dataset_type_binary():
+def test_infer_dataframe_annotation_binary():
     df = spark.createDataFrame([(b"abc",)], ["data"])
-    result = infer_dataset_type(df)
+    result = infer_dataframe_annotation(df)
     assert '"data": bytearray' in result
