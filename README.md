@@ -1,3 +1,9 @@
+![PyPI - Version](https://img.shields.io/pypi/v/sparkenforce?label=Latest%20version&link=https%3A%2F%2Fpypi.org%2Fproject%2Fsparkenforce%2F)
+![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/agustin-recoba/sparkenforce/pypi-publish.yml?label=Build%20and%20publish%20to%20PyPi)
+![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/agustin-recoba/sparkenforce/ci.yml?label=tests)
+[![Coverage Status](https://coveralls.io/repos/github/agustin-recoba/sparkenforce/badge.svg?branch=feat/cicd)](https://coveralls.io/github/agustin-recoba/sparkenforce?branch=feat/cicd)
+[![CodeFactor](https://www.codefactor.io/repository/github/agustin-recoba/sparkenforce/badge)](https://www.codefactor.io/repository/github/agustin-recoba/sparkenforce)
+
 # sparkenforce
 
 **sparkenforce** is a type annotation system that lets you specify and validate PySpark DataFrame schemas using Python type hints. It validates both function arguments and return values, catching schema mismatches before they cause runtime errors.
