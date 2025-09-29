@@ -33,7 +33,25 @@ Or if you're using uv:
 uv add sparkenforce
 ```
 
+### Specify DataFrame schema
+
+Use `sparkenforce` only for type-hinting.
+
+```python
+import sparkenforce
+from pyspark.sql import functions as fn
+from pyspark.sql import DataFrame
+
+def add_length(df: DataFrame['firstname': str, ...]) -> DataFrame['name': str, 'length': int]:
+    return df.select(
+        df.firstname.alias('name'),
+        fn.length(df.firstname).alias('length')
+    )
+```
+
 ### Validating Input DataFrames
+
+Add runtime validation everytime your function is called.
 
 ```python
 from sparkenforce import validate
@@ -41,14 +59,13 @@ from pyspark.sql import functions as fn
 from pyspark.sql import DataFrame
 
 @validate
-def add_length(df: DataFrame['firstname': str, ...]) -> DataFrame['name': str, 'length': int]:
+def add_length(df: DataFrame['firstname': str]):
     return df.select(
-        df.firstname.alias('name'),
-        fn.length(df.firstname).alias('length')
+        fn.col("firstname").alias('name'),
+        fn.length("firstname").alias('length')
     )
 
-# If input DataFrame doesn't have 'firstname' column, validation fails
-# If return DataFrame doesn't match expected schema, validation fails
+# If input DataFrame doesn't have 'firstname' column, validation fails with an exception.
 ```
 
 ### Flexible Schemas with Ellipsis
@@ -64,7 +81,7 @@ def filter_names(df: DataFrame['firstname': str, 'lastname': str, ...]):
 
 ### Return Value Validation
 
-sparkenforce validates that your function returns exactly what you promise:
+`sparkenforce` validates that your function returns exactly what you promise:
 
 ```python
 @validate
